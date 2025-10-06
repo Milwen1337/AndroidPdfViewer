@@ -11,6 +11,10 @@ android {
         versionName "${rootProject.tools.versionName}"
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 dependencies {
@@ -25,4 +29,4 @@ ext {
     PUBLISH_ARTIFACT_ID = 'android-pdf-viewer'
 }
 
-apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"
+//apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"

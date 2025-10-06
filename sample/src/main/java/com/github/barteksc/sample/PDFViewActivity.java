@@ -14,7 +14,6 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.barteksc.pdfviewer.PDFView;
@@ -81,8 +80,9 @@ public class PDFViewActivity extends AppCompatActivity
         }
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
+    public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         if (uri != null) outState.putString(STATE_URI, uri.toString());
         outState.putInt(STATE_PAGE, pageNumber);
@@ -95,7 +95,7 @@ public class PDFViewActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.pickFile) {
             launchPicker();
             return true;
