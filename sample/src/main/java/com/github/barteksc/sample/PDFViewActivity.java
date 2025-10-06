@@ -1,33 +1,21 @@
-/**
- * Copyright 2016 Bartosz Schiller
- * <p/>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p/>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.github.barteksc.sample;
 
-import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.OpenableColumns;
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.barteksc.pdfviewer.PDFView;
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
@@ -37,90 +25,102 @@ import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.shockwave.pdfium.PdfDocument;
 
-import org.androidannotations.annotations.AfterViews;
-import org.androidannotations.annotations.EActivity;
-import org.androidannotations.annotations.NonConfigurationInstance;
-import org.androidannotations.annotations.OnActivityResult;
-import org.androidannotations.annotations.OptionsItem;
-import org.androidannotations.annotations.OptionsMenu;
-import org.androidannotations.annotations.ViewById;
-
 import java.util.List;
 
-@EActivity(R.layout.activity_main)
-@OptionsMenu(R.menu.options)
-public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener,
-        OnPageErrorListener {
+public class PDFViewActivity extends AppCompatActivity
+        implements OnPageChangeListener, OnLoadCompleteListener, OnPageErrorListener {
 
-    private static final String TAG = PDFViewActivity.class.getSimpleName();
+    private static final String TAG = "PDFViewActivity";
 
-    private final static int REQUEST_CODE = 42;
-    public static final int PERMISSION_CODE = 42042;
+    private static final String STATE_URI = "state_uri";
+    private static final String STATE_PAGE = "state_page";
 
-    public static final String SAMPLE_FILE = "sample.pdf";
-    public static final String READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE";
+    private static final String SAMPLE_FILE = "sample.pdf";
 
-    @ViewById
-    PDFView pdfView;
+    private PDFView pdfView;
+    private Uri uri;
+    private int pageNumber = 0;
+    private String pdfFileName;
 
-    @NonConfigurationInstance
-    Uri uri;
+    // SAF picker: no storage permission required
+    private final ActivityResultLauncher<String[]> openPdfLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), pickedUri -> {
+                if (pickedUri != null) {
+                    // Keep permission across restarts if you want to re-open later
+                    final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+                    try {
+                        getContentResolver().takePersistableUriPermission(pickedUri, takeFlags);
+                    } catch (SecurityException ignored) { /* not persistable from some providers */ }
 
-    @NonConfigurationInstance
-    Integer pageNumber = 0;
+                    uri = pickedUri;
+                    displayFromUri(uri);
+                }
+            });
 
-    String pdfFileName;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-    @OptionsItem(R.id.pickFile)
-    void pickFile() {
-        int permissionCheck = ContextCompat.checkSelfPermission(this,
-                READ_EXTERNAL_STORAGE);
-
-        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{READ_EXTERNAL_STORAGE},
-                    PERMISSION_CODE
-            );
-
-            return;
-        }
-
-        launchPicker();
-    }
-
-    void launchPicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("application/pdf");
-        try {
-            startActivityForResult(intent, REQUEST_CODE);
-        } catch (ActivityNotFoundException e) {
-            //alert user that file manager not working
-            Toast.makeText(this, R.string.toast_pick_file_error, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @AfterViews
-    void afterViews() {
+        pdfView = findViewById(R.id.pdfView);
         pdfView.setBackgroundColor(Color.LTGRAY);
+
+        if (savedInstanceState != null) {
+            String uriString = savedInstanceState.getString(STATE_URI);
+            if (uriString != null) uri = Uri.parse(uriString);
+            pageNumber = savedInstanceState.getInt(STATE_PAGE, 0);
+        }
+
         if (uri != null) {
             displayFromUri(uri);
         } else {
             displayFromAsset(SAMPLE_FILE);
         }
-        setTitle(pdfFileName);
+        if (pdfFileName != null) {
+            setTitle(pdfFileName);
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (uri != null) outState.putString(STATE_URI, uri.toString());
+        outState.putInt(STATE_PAGE, pageNumber);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.options, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.pickFile) {
+            launchPicker();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void launchPicker() {
+        try {
+            // Only PDFs
+            openPdfLauncher.launch(new String[]{"application/pdf"});
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.toast_pick_file_error, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void displayFromAsset(String assetFileName) {
         pdfFileName = assetFileName;
-
-        pdfView.fromAsset(SAMPLE_FILE)
+        pdfView.fromAsset(assetFileName)
                 .defaultPage(pageNumber)
                 .onPageChange(this)
                 .enableAnnotationRendering(true)
                 .onLoad(this)
                 .scrollHandle(new DefaultScrollHandle(this))
-                .spacing(10) // in dp
+                .spacing(10)
                 .onPageError(this)
                 .pageFitPolicy(FitPolicy.BOTH)
                 .load();
@@ -128,43 +128,27 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
 
     private void displayFromUri(Uri uri) {
         pdfFileName = getFileName(uri);
-
         pdfView.fromUri(uri)
                 .defaultPage(pageNumber)
                 .onPageChange(this)
                 .enableAnnotationRendering(true)
                 .onLoad(this)
                 .scrollHandle(new DefaultScrollHandle(this))
-                .spacing(10) // in dp
+                .spacing(10)
                 .onPageError(this)
+                .pageFitPolicy(FitPolicy.BOTH)
                 .load();
+        setTitle(pdfFileName);
     }
 
-    @OnActivityResult(REQUEST_CODE)
-    public void onResult(int resultCode, Intent intent) {
-        if (resultCode == RESULT_OK) {
-            uri = intent.getData();
-            displayFromUri(uri);
-        }
-    }
-
-    @Override
-    public void onPageChanged(int page, int pageCount) {
-        pageNumber = page;
-        setTitle(String.format("%s %s / %s", pdfFileName, page + 1, pageCount));
-    }
-
-    public String getFileName(Uri uri) {
+    private String getFileName(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
-            try {
+        if ("content".equals(uri.getScheme())) {
+            ContentResolver cr = getContentResolver();
+            try (Cursor cursor = cr.query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-                }
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
+                    int nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIdx >= 0) result = cursor.getString(nameIdx);
                 }
             }
         }
@@ -172,6 +156,12 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
             result = uri.getLastPathSegment();
         }
         return result;
+    }
+
+    @Override
+    public void onPageChanged(int page, int pageCount) {
+        pageNumber = page;
+        setTitle(String.format("%s %s / %s", pdfFileName, page + 1, pageCount));
     }
 
     @Override
@@ -185,42 +175,20 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
         Log.e(TAG, "producer = " + meta.getProducer());
         Log.e(TAG, "creationDate = " + meta.getCreationDate());
         Log.e(TAG, "modDate = " + meta.getModDate());
-
         printBookmarksTree(pdfView.getTableOfContents(), "-");
-
-    }
-
-    public void printBookmarksTree(List<PdfDocument.Bookmark> tree, String sep) {
-        for (PdfDocument.Bookmark b : tree) {
-
-            Log.e(TAG, String.format("%s %s, p %d", sep, b.getTitle(), b.getPageIdx()));
-
-            if (b.hasChildren()) {
-                printBookmarksTree(b.getChildren(), sep + "-");
-            }
-        }
-    }
-
-    /**
-     * Listener for response to user permission request
-     *
-     * @param requestCode  Check that permission request code matches
-     * @param permissions  Permissions that requested
-     * @param grantResults Whether permissions granted
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[],
-                                           @NonNull int[] grantResults) {
-        if (requestCode == PERMISSION_CODE) {
-            if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                launchPicker();
-            }
-        }
     }
 
     @Override
     public void onPageError(int page, Throwable t) {
-        Log.e(TAG, "Cannot load page " + page);
+        Log.e(TAG, "Cannot load page " + page, t);
+    }
+
+    private void printBookmarksTree(List<PdfDocument.Bookmark> tree, String sep) {
+        for (PdfDocument.Bookmark b : tree) {
+            Log.e(TAG, String.format("%s %s, p %d", sep, b.getTitle(), b.getPageIdx()));
+            if (b.hasChildren()) {
+                printBookmarksTree(b.getChildren(), sep + "-");
+            }
+        }
     }
 }

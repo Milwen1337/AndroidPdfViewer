@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 
 android {
+    namespace rootProject.tools.namespace
     compileSdkVersion rootProject.tools.compileSdk
 
     defaultConfig {
@@ -13,7 +14,7 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core:1.7.0'
+    implementation 'androidx.core:core:1.17.0'
     api 'com.github.mhiew:pdfium-android:1.9.2'
 }
 
@@ -24,4 +25,4 @@ ext {
     PUBLISH_ARTIFACT_ID = 'android-pdf-viewer'
 }
 
-apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"
+//apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"

@@ -5,7 +5,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.0'
+        classpath 'com.android.tools.build:gradle:8.13.0'
     }
 }
 
@@ -18,9 +18,11 @@ allprojects {
 
 ext {
     tools = [
-            minSdk      : 19,
-            targetSdk   : 31,
-            compileSdk  : 31,
-            versionName: '3.2.0-beta.3'
+            namespace       : 'com.github.barteksc.pdfviewer',
+            namespaceSample : 'com.github.barteksc.sample',
+            minSdk          : 21,
+            targetSdk       : 36,
+            compileSdk      : 36,
+            versionName     : '3.2.0-beta.4'
     ]
 }
