@@ -13,6 +13,12 @@ Library for displaying PDF documents on Android, with `animations`, `gestures`, 
 It is based on [PdfiumAndroid](https://github.com/barteksc/PdfiumAndroid) for decoding PDF files. Works on API 11 (Android 3.0) and higher.
 Licensed under Apache License 2.0.
 
+## 3.2.0-beta.4
+* Change minimum SDK version to 23
+* Change target SDK version to 36
+* Updated Gradle version to 8.13
+* Removed annotations and annotation processor (unsupported since Gradle 8)
+
 ## 3.2.0-beta.3
 * Change minimum SDK version to 19
 * Drop MIPS support
