@@ -1,0 +1,71 @@
+group = PUBLISH_GROUP_ID
+version = PUBLISH_VERSION
+
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+publishing {
+    publications {
+        register("release", MavenPublication) {
+            groupId = PUBLISH_GROUP_ID
+            artifactId = PUBLISH_ARTIFACT_ID
+            version = PUBLISH_VERSION
+
+            pom {
+                name = PUBLISH_ARTIFACT_ID
+                description = 'Fork of Barteksc Pdfium Android'
+                url = 'https://github.com/mhiew/PdfiumAndroid'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'min'
+                        name = 'Min Hiew'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/mhiew/'
+                    developerConnection = 'scm:git:ssh:github.com:mhiew/PdfiumAndroid.git'
+                    url = 'https://github.com/mhiew/PdfiumAndroid'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "sonatype"
+            url = uri(findProperty("sonatypeUrl")
+                    ?: "https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+}
+
+plugins.withId("com.android.library") {
+    afterEvaluate {
+        def comp = components.findByName("release")
+        if (comp == null) {
+            throw new GradleException("Android 'release' component not found. " +
+                    "Ensure android.publishing.singleVariant(\"release\") is set in the module.")
+        }
+        publishing.publications.named("release", MavenPublication) {
+            from comp
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+    def signingPassword = findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+    sign publishing.publications
+}

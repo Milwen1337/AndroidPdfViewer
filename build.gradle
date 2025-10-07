@@ -20,7 +20,7 @@ ext {
     tools = [
             namespace       : 'com.github.barteksc.pdfviewer',
             namespaceSample : 'com.github.barteksc.sample',
-            minSdk          : 21,
+            minSdk          : 23,
             targetSdk       : 36,
             compileSdk      : 36,
             versionName     : '3.2.0-beta.4'
