@@ -1,6 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
 
 android {
     namespace rootProject.tools.namespace
@@ -13,17 +11,12 @@ android {
         versionName "${rootProject.tools.versionName}"
     }
 
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    ndkVersion '29.0.13113456 rc1'
 }
 
 dependencies {
@@ -38,5 +31,3 @@ ext {
     PUBLISH_VERSION = "${rootProject.tools.versionName}"
     PUBLISH_ARTIFACT_ID = 'android-pdf-viewer'
 }
-
-//apply from: "${rootProject.projectDir}/android-pdf-viewer/publish-mavencentral.gradle"

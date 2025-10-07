@@ -22,6 +22,13 @@ android {
         versionCode 3
         versionName "${rootProject.tools.versionName}"
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    ndkVersion '29.0.13113456 rc1'
 }
 
 dependencies {

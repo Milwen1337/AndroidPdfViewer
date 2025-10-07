@@ -10,12 +10,16 @@ buildscript {
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
 
 android {
     namespace 'com.shockwave.pdfium'
     compileSdkVersion 36
+
+    externalNativeBuild {
+        ndkBuild {
+            path "src/main/jni/Android.mk"
+        }
+    }
 
     defaultConfig {
         minSdkVersion 23
@@ -23,6 +27,13 @@ android {
         versionCode 2
         versionName "1.9.3"
         buildConfigField 'String', 'VERSION_NAME', "\"${defaultConfig.versionName}\""
+
+        externalNativeBuild {
+            ndkBuild {
+                // Pass the 16 KB flags in case Application.mk is not picked
+                arguments "APP_LDFLAGS+=-Wl,-z,common-page-size=16384 -Wl,-z,max-page-size=16384"
+            }
+        }
     }
 
     buildTypes {
@@ -36,17 +47,10 @@ android {
         buildConfig = true
     }
 
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
-
     sourceSets{
         main {
             jni.srcDirs = []
-            jniLibs.srcDir 'src/main/libs'
+            jniLibs.srcDirs = ['src/main/jni/lib']
         }
     }
 
@@ -54,6 +58,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    ndkVersion '29.0.13113456 rc1'
 }
 
 repositories {
@@ -71,5 +77,3 @@ ext {
     PUBLISH_VERSION = "1.9.3"
     PUBLISH_ARTIFACT_ID = 'pdfium-android'
 }
-
-//apply from: "${rootProject.projectDir}/publish-mavencentral.gradle"
